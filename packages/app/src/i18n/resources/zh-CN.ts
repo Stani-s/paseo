@@ -346,6 +346,10 @@ export const zhCN: TranslationResources = {
       forkFailed: "分叉聊天失败",
       openFile: "打开文件",
       copied: "已复制",
+      readAloud: "朗读",
+      stopReadAloud: "停止朗读",
+      speakSelection: "朗读所选内容",
+      readAloudError: "无法合成语音",
     },
     attachments: {
       dismissImage: "关闭图片",
@@ -2362,6 +2366,11 @@ export const zhCN: TranslationResources = {
         title: "听写",
         enabled: "听写",
         enabledHint: "对着消息框说话，无需打字",
+      },
+      readAloud: {
+        title: "朗读",
+        enabled: "朗读",
+        enabledHint: "通过按钮或选择菜单朗读 Agent 的回复",
       },
       voiceMode: {
         title: "语音模式",

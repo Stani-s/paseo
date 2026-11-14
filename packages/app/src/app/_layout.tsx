@@ -78,6 +78,7 @@ import { SessionProvider } from "@/contexts/session-context";
 import { SidebarCalloutProvider } from "@/contexts/sidebar-callout-context";
 import { ToastProvider } from "@/contexts/toast-context";
 import { VoiceProvider } from "@/contexts/voice-context";
+import { ReadAloudProvider } from "@/contexts/read-aloud-context";
 import {
   resolveStartupBlocker,
   resolveStartupNavigationReady,
@@ -655,13 +656,15 @@ function MobileGestureWrapper({
 function ProvidersWrapper({ children }: { children: ReactNode }) {
   return (
     <AppearanceProvider>
-      <VoiceProvider>
-        <DesktopWindowControlsSync />
-        <OfferLinkListener />
-        <HostSessionManager />
-        <FaviconStatusSync />
-        {children}
-      </VoiceProvider>
+      <ReadAloudProvider>
+        <VoiceProvider>
+          <DesktopWindowControlsSync />
+          <OfferLinkListener />
+          <HostSessionManager />
+          <FaviconStatusSync />
+          {children}
+        </VoiceProvider>
+      </ReadAloudProvider>
     </AppearanceProvider>
   );
 }

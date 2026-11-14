@@ -350,6 +350,10 @@ export const ptBR: TranslationResources = {
       forkFailed: "Falha ao bifurcar o chat",
       openFile: "Abrir arquivo",
       copied: "Copiado",
+      readAloud: "Ler em voz alta",
+      stopReadAloud: "Parar de ler em voz alta",
+      speakSelection: "Falar a seleção",
+      readAloudError: "Não foi possível sintetizar a voz",
     },
     attachments: {
       dismissImage: "Dispensar imagem",
@@ -2420,6 +2424,11 @@ export const ptBR: TranslationResources = {
         title: "Ditado",
         enabled: "Ditado",
         enabledHint: "Fale na caixa de mensagem em vez de digitar",
+      },
+      readAloud: {
+        title: "Ler em voz alta",
+        enabled: "Ler em voz alta",
+        enabledHint: "Lê a resposta do agente em voz alta com um botão ou o menu de seleção",
       },
       voiceMode: {
         title: "Modo de voz",

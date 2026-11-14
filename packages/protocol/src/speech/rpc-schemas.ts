@@ -29,6 +29,10 @@ export const SpeechTtsSettingsSchema = z.union([
   z.object({ provider: z.string(), ...ModelFields }).passthrough(),
 ]);
 
+// Read-aloud shares the voice mode TTS site's provider and model selection; only its gate is
+// its own. Optional so clients keep parsing daemons that predate the feature.
+const ReadAloudFields = z.object({ enabled: z.boolean() }).passthrough();
+
 export const SpeechSettingsSchema = z
   .object({
     dictation: z.object({ enabled: z.boolean(), stt: SpeechSttSettingsSchema }).passthrough(),
@@ -44,6 +48,7 @@ export const SpeechSettingsSchema = z
         turnDetection: z.object({ provider: z.string().optional() }).passthrough().optional(),
       })
       .passthrough(),
+    readAloud: ReadAloudFields.optional(),
   })
   .passthrough();
 
@@ -126,6 +131,7 @@ export const SpeechSettingsPatchSchema = z
       })
       .passthrough()
       .optional(),
+    readAloud: z.object({ enabled: z.boolean().nullable().optional() }).passthrough().optional(),
   })
   .passthrough();
 
@@ -197,6 +203,31 @@ export const SpeechLocalModelsDeleteResponseSchema = z.object({
   type: z.literal("speech.local_models.delete.response"),
   payload: z.object({
     requestId: z.string(),
+    error: z.string().nullable(),
+  }),
+});
+
+// ---------------------------------------------------------------------------
+// One-shot TTS: synthesize plain text outside a voice conversation.
+// ---------------------------------------------------------------------------
+
+// Bounds the response: providers emit 16-bit mono PCM near 24 kHz, so the cap keeps the
+// returned audio inside the relay's frame limit even for the slowest providers.
+export const SPEECH_TTS_SYNTHESIZE_MAX_TEXT_CHARS = 4000;
+
+export const SpeechTtsSynthesizeRequestSchema = z.object({
+  type: z.literal("speech.tts.synthesize.request"),
+  requestId: z.string(),
+  text: z.string().max(SPEECH_TTS_SYNTHESIZE_MAX_TEXT_CHARS),
+});
+
+export const SpeechTtsSynthesizeResponseSchema = z.object({
+  type: z.literal("speech.tts.synthesize.response"),
+  payload: z.object({
+    requestId: z.string(),
+    // Base64-encoded audio file; PCM providers are wrapped in a WAV container.
+    audio: z.string().nullable(),
+    mimeType: z.string().nullable(),
     error: z.string().nullable(),
   }),
 });

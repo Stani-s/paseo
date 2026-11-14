@@ -92,6 +92,8 @@ import {
   SpeechLocalModelsListResponseSchema,
   SpeechSettingsPatchSchema,
   SpeechSettingsSchema,
+  SpeechTtsSynthesizeRequestSchema,
+  SpeechTtsSynthesizeResponseSchema,
 } from "./speech/rpc-schemas.js";
 import {
   LoopRunRequestSchema,
@@ -3714,6 +3716,7 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   SpeechLocalModelsListRequestSchema,
   SpeechLocalModelsDownloadRequestSchema,
   SpeechLocalModelsDeleteRequestSchema,
+  SpeechTtsSynthesizeRequestSchema,
   ScheduleInspectRequestSchema,
   ScheduleLogsRequestSchema,
   SchedulePauseRequestSchema,
@@ -3843,6 +3846,8 @@ export const ServerCapabilityStateSchema = z.object({
 export const ServerVoiceCapabilitiesSchema = z.object({
   dictation: ServerCapabilityStateSchema,
   voice: ServerCapabilityStateSchema,
+  // Absent on daemons before read aloud shipped; clients treat missing as unavailable.
+  readAloud: ServerCapabilityStateSchema.optional(),
 });
 
 export const ServerCapabilitiesSchema = z
@@ -7601,6 +7606,7 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   SpeechLocalModelsListResponseSchema,
   SpeechLocalModelsDownloadResponseSchema,
   SpeechLocalModelsDeleteResponseSchema,
+  SpeechTtsSynthesizeResponseSchema,
   ScheduleInspectResponseSchema,
   ScheduleLogsResponseSchema,
   SchedulePauseResponseSchema,

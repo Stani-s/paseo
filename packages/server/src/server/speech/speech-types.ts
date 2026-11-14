@@ -15,4 +15,6 @@ export interface RequestedSpeechProviders {
   voiceTurnDetection: RequestedSpeechProvider;
   voiceStt: RequestedSpeechProvider;
   voiceTts: RequestedSpeechProvider;
+  // Read aloud's own gate. Its provider follows the voice TTS site's selection.
+  readAloudTts: RequestedSpeechProvider;
 }

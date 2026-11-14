@@ -351,6 +351,10 @@ export const ja: TranslationResources = {
       forkFailed: "チャットのフォークに失敗しました",
       openFile: "ファイルを開く",
       copied: "コピーしました",
+      readAloud: "読み上げ",
+      stopReadAloud: "読み上げを停止",
+      speakSelection: "選択範囲を読み上げ",
+      readAloudError: "音声を合成できませんでした",
     },
     attachments: {
       dismissImage: "画像を閉じる",
@@ -2409,6 +2413,11 @@ export const ja: TranslationResources = {
         title: "音声入力",
         enabled: "音声入力",
         enabledHint: "入力する代わりにメッセージ欄に話しかけます",
+      },
+      readAloud: {
+        title: "読み上げ",
+        enabled: "読み上げ",
+        enabledHint: "ボタンや選択メニューからエージェントの返信を読み上げます",
       },
       voiceMode: {
         title: "ボイスモード",

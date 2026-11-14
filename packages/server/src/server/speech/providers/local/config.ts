@@ -87,7 +87,12 @@ function shouldIncludeLocalProviderConfig(params: {
       params.providers.dictationStt.provider === "local") ||
     (params.providers.voiceStt.enabled !== false &&
       params.providers.voiceStt.provider === "local") ||
-    (params.providers.voiceTts.enabled !== false && params.providers.voiceTts.provider === "local");
+    (params.providers.voiceTts.enabled !== false &&
+      params.providers.voiceTts.provider === "local") ||
+    // Read aloud uses the same local TTS site; the key may be absent from providers
+    // captured before the feature existed.
+    (params.providers.readAloudTts?.enabled !== false &&
+      params.providers.readAloudTts?.provider === "local");
 
   return (
     localRequestedByFeature ||

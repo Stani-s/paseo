@@ -1,7 +1,7 @@
 import type { ServerCapabilityState } from "@getpaseo/protocol/messages";
 import type { DaemonServerInfo } from "@/stores/session-store";
 
-export type VoiceReadinessMode = "dictation" | "voice";
+export type VoiceReadinessMode = "dictation" | "voice" | "readAloud";
 
 export function getServerCapabilities(params: {
   serverInfo: DaemonServerInfo | null | undefined;
@@ -24,6 +24,10 @@ export function getVoiceReadinessState(params: {
   }
   if (params.mode === "dictation") {
     return voice.dictation;
+  }
+  if (params.mode === "readAloud") {
+    // Absent on daemons before read aloud shipped; callers treat missing as unsupported.
+    return voice.readAloud ?? null;
   }
   return voice.voice;
 }

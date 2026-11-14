@@ -350,6 +350,10 @@ export const ru: TranslationResources = {
       forkFailed: "Не удалось создать форк чата",
       openFile: "Открыть файл",
       copied: "Скопировано",
+      readAloud: "Озвучить",
+      stopReadAloud: "Остановить озвучивание",
+      speakSelection: "Озвучить выделенное",
+      readAloudError: "Не удалось синтезировать речь",
     },
     attachments: {
       dismissImage: "Закрыть изображение",
@@ -2422,6 +2426,11 @@ export const ru: TranslationResources = {
         title: "Диктовка",
         enabled: "Диктовка",
         enabledHint: "Говорите в поле сообщения вместо набора текста",
+      },
+      readAloud: {
+        title: "Озвучивание",
+        enabled: "Озвучивание",
+        enabledHint: "Озвучивает ответ агента кнопкой или через меню выделения",
       },
       voiceMode: {
         title: "Голосовой режим",

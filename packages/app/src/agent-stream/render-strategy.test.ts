@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { StreamItem } from "@/types/stream";
 import {
   collectAssistantResponseContentForStreamRenderStrategy,
+  collectAssistantTailContentForStreamRenderStrategy,
   getBottomOffsetForStreamRenderStrategy,
   getFrameChildOrderForStreamRenderStrategy,
   getHistoryLiveBoundaryIndexForStreamRenderStrategy,
@@ -159,6 +160,62 @@ describe("neighbor and traversal semantics", () => {
 
     expect(getStreamNeighborItem({ strategy, items, index: 0, relation: "above" })).toBeUndefined();
     expect(getStreamNeighborItem({ strategy, items, index: 0, relation: "below" })).toBeUndefined();
+  });
+});
+
+describe("read-aloud tail content", () => {
+  it.each(PLATFORMS)("collects the prose after the most recent tool call on %s", (platform) => {
+    const strategy = strategyFor(platform);
+    const items: StreamItem[] = [
+      userMessage("u1", "do the thing", 1),
+      assistantMessage("a1", "intro prose", 2),
+      toolCall("tool-1", 3),
+      assistantMessage("a2", "middle prose", 4),
+      toolCall("tool-2", 5),
+      assistantMessage("a3", "tail prose", 6),
+      assistantMessage("a4", "more tail prose", 7),
+    ];
+
+    expect(
+      collectAssistantTailContentForStreamRenderStrategy({
+        strategy,
+        items,
+        startIndex: items.findIndex((item) => item.id === "a4"),
+      }),
+    ).toBe("tail prose\n\nmore tail prose");
+  });
+
+  it("collects the whole turn when it has no tool calls", () => {
+    const strategy = strategyFor("web");
+    const items: StreamItem[] = [
+      userMessage("u1", "summarize", 1),
+      assistantMessage("a1", "first part", 2),
+      assistantMessage("a2", "second part", 3),
+    ];
+
+    expect(
+      collectAssistantTailContentForStreamRenderStrategy({
+        strategy,
+        items,
+        startIndex: 2,
+      }),
+    ).toBe("first part\n\nsecond part");
+  });
+
+  it("stops at the turn boundary", () => {
+    const strategy = strategyFor("web");
+    const items: StreamItem[] = [
+      { ...assistantMessage("a1", "earlier turn", 1), turnId: "turn-1" },
+      { ...assistantMessage("a2", "latest turn", 2), turnId: "turn-2" },
+    ];
+
+    expect(
+      collectAssistantTailContentForStreamRenderStrategy({
+        strategy,
+        items,
+        startIndex: 1,
+      }),
+    ).toBe("latest turn");
   });
 });
 

@@ -347,6 +347,10 @@ export const ko: TranslationResources = {
       forkFailed: "채팅을 분기하지 못했습니다.",
       openFile: "파일 열기",
       copied: "복사됨",
+      readAloud: "소리내어 읽기",
+      stopReadAloud: "소리내어 읽기 중지",
+      speakSelection: "선택한 텍스트 읽기",
+      readAloudError: "음성을 합성하지 못했습니다",
     },
     attachments: {
       dismissImage: "이미지 닫기",
@@ -2397,6 +2401,11 @@ export const ko: TranslationResources = {
         title: "받아쓰기",
         enabled: "받아쓰기",
         enabledHint: "입력하는 대신 메시지 상자에 말하세요",
+      },
+      readAloud: {
+        title: "소리내어 읽기",
+        enabled: "소리내어 읽기",
+        enabledHint: "버튼이나 선택 메뉴로 에이전트의 답장을 소리 내어 읽습니다",
       },
       voiceMode: {
         title: "음성 모드",

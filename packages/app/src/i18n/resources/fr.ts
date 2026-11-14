@@ -351,6 +351,10 @@ export const fr: TranslationResources = {
       forkFailed: "Impossible de forker la conversation",
       openFile: "Ouvrir le fichier",
       copied: "Copié",
+      readAloud: "Lire à voix haute",
+      stopReadAloud: "Arrêter la lecture",
+      speakSelection: "Prononcer la sélection",
+      readAloudError: "Impossible de synthétiser la voix",
     },
     attachments: {
       dismissImage: "Ignorer l’image",
@@ -2436,6 +2440,12 @@ export const fr: TranslationResources = {
         title: "Dictée",
         enabled: "Dictée",
         enabledHint: "Parlez dans la zone de message au lieu de taper",
+      },
+      readAloud: {
+        title: "Lecture à voix haute",
+        enabled: "Lecture à voix haute",
+        enabledHint:
+          "Fait lire à voix haute la réponse de l0027agent via un bouton ou le menu de sélection",
       },
       voiceMode: {
         title: "Mode vocal",

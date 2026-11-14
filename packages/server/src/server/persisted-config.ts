@@ -162,6 +162,14 @@ const FeatureVoiceModeSchema = z
   })
   .strict();
 
+// Read aloud synthesizes agent text on demand. It uses the voice mode TTS site's provider and
+// model selection, so it carries only its own gate here.
+const FeatureReadAloudSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+  })
+  .strict();
+
 const FeatureWebUiSchema = z
   .object({
     enabled: z.boolean().optional(),
@@ -361,6 +369,7 @@ export const PersistedConfigSchema = z
       .object({
         dictation: FeatureDictationSchema.optional(),
         voiceMode: FeatureVoiceModeSchema.optional(),
+        readAloud: FeatureReadAloudSchema.optional(),
         webUi: FeatureWebUiSchema.optional(),
       })
       .strict()

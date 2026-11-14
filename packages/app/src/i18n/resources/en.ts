@@ -343,6 +343,10 @@ export const en = {
       forkFailed: "Failed to fork chat",
       openFile: "Open file",
       copied: "Copied",
+      readAloud: "Read aloud",
+      stopReadAloud: "Stop reading aloud",
+      speakSelection: "Speak selection",
+      readAloudError: "Couldn't synthesize speech",
     },
     attachments: {
       dismissImage: "Dismiss image",
@@ -2513,6 +2517,11 @@ export const en = {
         title: "Dictation",
         enabled: "Dictation",
         enabledHint: "Speak into the message box instead of typing",
+      },
+      readAloud: {
+        title: "Read aloud",
+        enabled: "Read aloud",
+        enabledHint: "Speak the agent's reply aloud with a button or a selection menu",
       },
       voiceMode: {
         title: "Voice mode",

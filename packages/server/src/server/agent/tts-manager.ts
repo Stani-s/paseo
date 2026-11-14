@@ -103,7 +103,11 @@ function splitOversizedFragment(fragment: string, maxChars: number): string[] {
   return parts;
 }
 
-function splitTextForTts(text: string): TtsSegment[] {
+/**
+ * Splits text into provider-sized segments, shared with one-shot synthesis outside the
+ * voice session, so both paths synthesize identical segments.
+ */
+export function splitTextForTts(text: string): TtsSegment[] {
   const normalized = text.trim().replace(/\s+/g, " ");
   if (!normalized) {
     throw new Error("Cannot synthesize empty text");

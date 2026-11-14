@@ -1167,6 +1167,8 @@ const LIVENESS_FAILURE_RECONNECT_THRESHOLD = 2;
 const DEFAULT_SEND_QUEUE_TIMEOUT_MS = DEFAULT_SESSION_RPC_TIMEOUT_MS;
 const DEFAULT_DICTATION_FINISH_ACCEPT_TIMEOUT_MS = DEFAULT_SESSION_RPC_TIMEOUT_MS;
 const DEFAULT_DICTATION_FINISH_FALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
+// One-shot TTS synthesizes the whole text before answering, which can outlast a 60s RPC.
+const SYNTHESIZE_TTS_TIMEOUT_MS = 5 * 60 * 1000;
 const DEFAULT_DICTATION_FINISH_TIMEOUT_GRACE_MS = 5000;
 
 function isWaiterTimeoutError(error: unknown): boolean {
@@ -6162,6 +6164,28 @@ export class DaemonClient {
       responseType: "speech.local_models.delete.response",
     });
     if (payload.error) throw new Error(payload.error);
+  }
+
+  /**
+   * Synthesizes plain text to a single audio file with the read-aloud TTS provider. Local
+   * synthesis works segment by segment, so the wait outlives the default RPC timeout.
+   */
+  async synthesizeTts(
+    text: string,
+    requestId?: string,
+  ): Promise<{ base64: string; mimeType: string }> {
+    const payload = await this.sendNamespacedCorrelatedSessionRequest<
+      Extract<SessionOutboundMessage, { type: "speech.tts.synthesize.response" }>["type"]
+    >({
+      requestId,
+      message: { type: "speech.tts.synthesize.request", text },
+      timeout: SYNTHESIZE_TTS_TIMEOUT_MS,
+    });
+    if (payload.error) throw new Error(payload.error);
+    if (!payload.audio || !payload.mimeType) {
+      throw new Error("TTS synthesis returned no audio");
+    }
+    return { base64: payload.audio, mimeType: payload.mimeType };
   }
 
   sendBrowserAutomationExecuteResponse(response: BrowserAutomationExecuteResponse): void {

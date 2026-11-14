@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
 
 import type { SpeechToTextProvider, TextToSpeechProvider } from "../../speech-provider.js";
-import type { RequestedSpeechProviders } from "../../speech-types.js";
+import type { RequestedSpeechProvider, RequestedSpeechProviders } from "../../speech-types.js";
 import type { TurnDetectionProvider } from "../../turn-detection-provider.js";
 import {
   DEFAULT_OPENAI_TTS_MODEL,
@@ -76,6 +76,13 @@ export function validateOpenAiCredentialRequirements(params: {
     missingOpenAiCredentialsFor.push("voice.tts");
   }
   if (
+    providers.readAloudTts?.enabled !== false &&
+    providers.readAloudTts?.provider === "openai" &&
+    !openAiCredentials.openaiTtsApiKey
+  ) {
+    missingOpenAiCredentialsFor.push("readAloud.tts");
+  }
+  if (
     providers.dictationStt.enabled !== false &&
     providers.dictationStt.provider === "openai" &&
     !openAiCredentials.openaiDictationApiKey
@@ -128,6 +135,14 @@ function createOpenAiTts(
   );
 }
 
+/**
+ * Reads a requested speech site as enabled and OpenAI. Tolerates sites absent from
+ * RequestedSpeechProviders values captured before that feature existed.
+ */
+function requestsOpenAi(provider: RequestedSpeechProvider | undefined): boolean {
+  return provider?.enabled !== false && provider?.provider === "openai";
+}
+
 export function initializeOpenAiSpeechServices(params: {
   providers: RequestedSpeechProviders;
   openaiConfig: OpenAiSpeechProviderConfig | undefined;
@@ -142,16 +157,14 @@ export function initializeOpenAiSpeechServices(params: {
   let dictationSttService = existing.dictationSttService;
   const turnDetectionService = existing.turnDetectionService;
 
-  const needsOpenAiStt =
-    !sttService && providers.voiceStt.enabled !== false && providers.voiceStt.provider === "openai";
-  const needsOpenAiTts =
-    !ttsService && providers.voiceTts.enabled !== false && providers.voiceTts.provider === "openai";
-  const needsOpenAiDictation =
-    !dictationSttService &&
-    providers.dictationStt.enabled !== false &&
-    providers.dictationStt.provider === "openai";
+  const needsOpenAiStt = !sttService && requestsOpenAi(providers.voiceStt);
+  // Read aloud synthesizes with the same OpenAI TTS site as voice mode.
+  const needsOpenAiTts = !ttsService && requestsOpenAi(providers.voiceTts);
+  const needsOpenAiReadAloudTts = !ttsService && requestsOpenAi(providers.readAloudTts);
+  const needsOpenAiDictation = !dictationSttService && requestsOpenAi(providers.dictationStt);
 
-  const needsAnyOpenAi = needsOpenAiStt || needsOpenAiTts || needsOpenAiDictation;
+  const needsAnyOpenAi =
+    needsOpenAiStt || needsOpenAiTts || needsOpenAiReadAloudTts || needsOpenAiDictation;
   const hasAnyOpenAiCredential =
     Boolean(openAiCredentials.openaiSttApiKey) ||
     Boolean(openAiCredentials.openaiTtsApiKey) ||
@@ -169,7 +182,7 @@ export function initializeOpenAiSpeechServices(params: {
       });
     }
 
-    if (needsOpenAiTts && openAiCredentials.openaiTtsApiKey) {
+    if ((needsOpenAiTts || needsOpenAiReadAloudTts) && openAiCredentials.openaiTtsApiKey) {
       ttsService = createOpenAiTts(openAiCredentials.openaiTtsApiKey, openaiConfig, logger);
     }
 

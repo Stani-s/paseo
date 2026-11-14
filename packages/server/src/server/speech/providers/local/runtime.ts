@@ -92,6 +92,14 @@ function computeRequiredLocalModelIds(params: {
   ) {
     ids.add(params.models.voiceLocalTtsModel);
   }
+  // Read aloud synthesizes with the same local TTS model as voice mode. The key is absent
+  // from providers captured before the feature existed.
+  if (
+    params.providers.readAloudTts?.enabled !== false &&
+    params.providers.readAloudTts?.provider === "local"
+  ) {
+    ids.add(params.models.voiceLocalTtsModel);
+  }
   return Array.from(ids);
 }
 
@@ -192,7 +200,12 @@ export async function initializeLocalSpeechServices(params: {
     }
   }
 
-  if (isLocalProviderEnabled(providers.voiceTts)) {
+  // The voice TTS provider is also what read aloud synthesizes with; the key may be absent
+  // from providers captured before the feature existed.
+  if (
+    isLocalProviderEnabled(providers.voiceTts) ||
+    (providers.readAloudTts && isLocalProviderEnabled(providers.readAloudTts))
+  ) {
     if (workerClient) {
       localVoiceTtsProvider = initializeLocalVoiceTts({ client: workerClient });
     } else {

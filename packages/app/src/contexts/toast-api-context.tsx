@@ -11,6 +11,14 @@ export function useToast(): ToastApi {
   return value;
 }
 
+/**
+ * For actions that can render without a host, such as stream rows shown in isolated
+ * test and preview hosts: errors surface wherever a toast host does exist.
+ */
+export function useToastOptional(): ToastApi | null {
+  return useContext(ToastContext);
+}
+
 export function ToastApiProvider({ api, children }: { api: ToastApi; children: ReactNode }) {
   return <ToastContext.Provider value={api}>{children}</ToastContext.Provider>;
 }

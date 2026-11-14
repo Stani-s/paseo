@@ -49,6 +49,7 @@ export function readSpeechSettings(persisted: PersistedConfig, env: NodeJS.Proce
   };
   recordOverride("features.dictation.enabled", ["PASEO_DICTATION_ENABLED"]);
   recordOverride("features.voiceMode.enabled", ["PASEO_VOICE_MODE_ENABLED"]);
+  recordOverride("features.readAloud.enabled", ["PASEO_READ_ALOUD_ENABLED"]);
   recordOverride("features.voiceMode.turnDetection.provider", [
     "PASEO_VOICE_TURN_DETECTION_PROVIDER",
   ]);
@@ -141,6 +142,9 @@ export function readSpeechSettings(persisted: PersistedConfig, env: NodeJS.Proce
           "PASEO_VOICE_LOCAL_TTS_MODEL",
         ),
       },
+      readAloud: {
+        enabled: providers.readAloudTts.enabled !== false,
+      },
     },
     envOverrides,
   };
@@ -197,6 +201,10 @@ export function mergeSpeechSettingsPatch(
     if (turnDetection)
       next.turnDetection = mergeFields(features.voiceMode?.turnDetection, turnDetection);
     features.voiceMode = PersistedConfigSchema.shape.features.unwrap().shape.voiceMode.parse(next);
+  }
+  if (patch.readAloud) {
+    const next = mergeFields(features.readAloud, patch.readAloud);
+    features.readAloud = PersistedConfigSchema.shape.features.unwrap().shape.readAloud.parse(next);
   }
   return { ...persisted, features };
 }

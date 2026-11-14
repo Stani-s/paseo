@@ -46,7 +46,9 @@ import {
   MicVocal,
   Plus,
   Scissors,
+  Square,
   TriangleAlertIcon,
+  Volume2,
   XCircle,
 } from "lucide-react-native";
 import type { ComponentType, ReactNode } from "react";
@@ -88,6 +90,10 @@ import { getCompactionMarkerLabel } from "./message-compaction-label";
 import { PlanCard } from "./plan-card";
 import { ToolCallDetailsContent } from "./tool-call-details";
 import { useToolCallSheet } from "./tool-call-sheet";
+import { useReadAloud } from "@/contexts/read-aloud-context";
+import { useToastOptional } from "@/contexts/toast-api-context";
+import { useSessionStore } from "@/stores/session-store";
+import { getVoiceReadinessState } from "@/utils/server-info-capabilities";
 export type { InlinePathTarget } from "@/assistant-file-links";
 export type { AssistantForkTarget };
 
@@ -553,6 +559,11 @@ export const UserMessage = memo(function UserMessage({
 
 interface AssistantTurnFooterProps {
   getContent?: () => string;
+  // Prose after the most recent tool call; spoken by the read-aloud action.
+  getSpeakContent?: () => string;
+  // Identifies the turn for the read-aloud toggle; undefined without server access.
+  speakUtteranceId?: string;
+  serverId?: string | null;
   completedAt?: Date;
   durationMs?: number | null;
   onFork?: (target: AssistantForkTarget) => Promise<void> | void;
@@ -610,6 +621,9 @@ const TIMESTAMP_REVEAL_MS = 3000;
  */
 export const AssistantTurnFooter = memo(function AssistantTurnFooter({
   getContent,
+  getSpeakContent,
+  speakUtteranceId,
+  serverId,
   completedAt,
   durationMs,
   onFork,
@@ -655,27 +669,16 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
       revealTimerRef.current = null;
     }, TIMESTAMP_REVEAL_MS);
   }, [canSwap]);
-  const handleFork = useCallback(
-    (target: AssistantForkTarget) => {
-      return onFork?.(target);
-    },
-    [onFork],
-  );
-  const canFork = Boolean(onFork);
 
   return (
     <View style={assistantTurnFooterStylesheet.container}>
-      {getContent || canFork ? (
-        <View style={assistantTurnFooterStylesheet.actions}>
-          {getContent ? (
-            <TurnCopyButton
-              getContent={getContent}
-              containerStyle={assistantTurnFooterStylesheet.copyButton}
-            />
-          ) : null}
-          {canFork ? <AssistantForkMenu onFork={handleFork} /> : null}
-        </View>
-      ) : null}
+      <TurnFooterActions
+        getContent={getContent}
+        getSpeakContent={getSpeakContent}
+        speakUtteranceId={speakUtteranceId}
+        serverId={serverId}
+        onFork={onFork}
+      />
       {primaryLabel ? (
         <Pressable
           style={assistantTurnFooterStylesheet.labelButton}
@@ -908,6 +911,157 @@ export const TurnCopyButton = memo(function TurnCopyButton({
         );
       }}
     </Pressable>
+  );
+});
+
+const turnReadAloudButtonStylesheet = StyleSheet.create((theme) => ({
+  container: {
+    alignSelf: "flex-start",
+    padding: theme.spacing[2],
+    paddingTop: 0,
+    marginTop: theme.spacing[2],
+    marginLeft: -theme.spacing[2],
+  },
+  iconColor: {
+    color: theme.colors.foregroundMuted,
+  },
+  iconActiveColor: {
+    color: theme.colors.foreground,
+  },
+}));
+
+/**
+ * Speaks the turn's trailing prose (the text since the last tool call) with the daemon's
+ * TTS provider. Only mounted for finished turns; pressing it while its utterance plays
+ * stops playback.
+ */
+export const TurnReadAloudButton = memo(function TurnReadAloudButton({
+  getContent,
+  utteranceId,
+  serverId,
+}: {
+  getContent: () => string;
+  utteranceId: string;
+  serverId: string | null;
+}) {
+  const { t } = useTranslation();
+  const toast = useToastOptional();
+  const readAloud = useReadAloud();
+  const client = useSessionStore(
+    useCallback(
+      (state) => (serverId ? (state.sessions[serverId]?.client ?? null) : null),
+      [serverId],
+    ),
+  );
+  const isSupported = useSessionStore(
+    useCallback(
+      (state) =>
+        getVoiceReadinessState({
+          serverInfo: serverId ? (state.sessions[serverId]?.serverInfo ?? null) : null,
+          mode: "readAloud",
+        })?.enabled === true,
+      [serverId],
+    ),
+  );
+
+  const isActive = readAloud.utteranceId === utteranceId && readAloud.status !== "idle";
+  const isSynthesizing = isActive && readAloud.status === "synthesizing";
+
+  const handlePress = useCallback(() => {
+    if (isActive && !isSynthesizing) {
+      readAloud.stop();
+      return;
+    }
+    void readAloud.speak({ utteranceId, client, text: getContent() }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      toast?.error(`${t("message.actions.readAloudError")}: ${message}`);
+    });
+  }, [client, getContent, isActive, isSynthesizing, readAloud, t, toast, utteranceId]);
+
+  if (!isSupported) {
+    return null;
+  }
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      style={turnReadAloudButtonStylesheet.container}
+      accessibilityRole="button"
+      accessibilityLabel={
+        isActive ? t("message.actions.stopReadAloud") : t("message.actions.readAloud")
+      }
+    >
+      {({ hovered }) => {
+        if (isSynthesizing) {
+          return (
+            <LoadingSpinner
+              size={ICON_SIZE.sm}
+              color={turnReadAloudButtonStylesheet.iconActiveColor.color}
+            />
+          );
+        }
+        if (isActive) {
+          return (
+            <Square
+              size={ICON_SIZE.sm}
+              color={turnReadAloudButtonStylesheet.iconActiveColor.color}
+            />
+          );
+        }
+        return (
+          <Volume2
+            size={ICON_SIZE.sm}
+            color={
+              hovered
+                ? turnReadAloudButtonStylesheet.iconActiveColor.color
+                : turnReadAloudButtonStylesheet.iconColor.color
+            }
+          />
+        );
+      }}
+    </Pressable>
+  );
+});
+
+/** Row of turn actions: copy, read aloud, and fork. Splits from the timestamp footer. */
+const TurnFooterActions = memo(function TurnFooterActions({
+  getContent,
+  getSpeakContent,
+  speakUtteranceId,
+  serverId,
+  onFork,
+}: Pick<
+  AssistantTurnFooterProps,
+  "getContent" | "getSpeakContent" | "speakUtteranceId" | "serverId" | "onFork"
+>) {
+  const handleFork = useCallback(
+    (target: AssistantForkTarget) => {
+      return onFork?.(target);
+    },
+    [onFork],
+  );
+
+  if (!getContent && !getSpeakContent && !speakUtteranceId && !onFork) {
+    return null;
+  }
+
+  return (
+    <View style={assistantTurnFooterStylesheet.actions}>
+      {getContent ? (
+        <TurnCopyButton
+          getContent={getContent}
+          containerStyle={assistantTurnFooterStylesheet.copyButton}
+        />
+      ) : null}
+      {getSpeakContent && speakUtteranceId ? (
+        <TurnReadAloudButton
+          getContent={getSpeakContent}
+          utteranceId={speakUtteranceId}
+          serverId={serverId ?? null}
+        />
+      ) : null}
+      {onFork ? <AssistantForkMenu onFork={handleFork} /> : null}
+    </View>
   );
 });
 

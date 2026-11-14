@@ -126,6 +126,11 @@ export interface StreamStrategy {
     relation: NeighborRelation,
   ) => StreamItem | undefined;
   collectAssistantResponseContent: (items: StreamItem[], startIndex: number) => string;
+  /**
+   * The assistant prose after the most recent tool call within the turn that ends at
+   * `startIndex` — what a "read aloud" action should speak.
+   */
+  collectAssistantTailContent: (items: StreamItem[], startIndex: number) => string;
   isNearBottom: (input: StreamNearBottomInput) => boolean;
   getBottomOffset: (metrics: StreamViewportMetrics) => number;
   getEdgeSlotProps: (
@@ -192,6 +197,29 @@ export function createStreamStrategy(config: StreamStrategyConfig): StreamStrate
       ) {
         const currentItem = items[index];
         if (!currentItem || (laterItem && !continuesResponse(currentItem, laterItem))) {
+          break;
+        }
+        if (currentItem.kind === "assistant_message") {
+          messages.push(currentItem.text);
+        }
+        laterItem = currentItem;
+      }
+      return messages.toReversed().join("\n\n");
+    },
+    collectAssistantTailContent: (items, startIndex) => {
+      const messages: string[] = [];
+      let laterItem: StreamItem | null = null;
+      for (
+        let index = startIndex;
+        index >= 0 && index < items.length;
+        index += config.assistantTurnTraversalStep
+      ) {
+        const currentItem = items[index];
+        if (!currentItem || (laterItem && !continuesResponse(currentItem, laterItem))) {
+          break;
+        }
+        // The most recent tool call is the boundary: only prose after it is spoken.
+        if (currentItem.kind === "tool_call") {
           break;
         }
         if (currentItem.kind === "assistant_message") {
@@ -280,6 +308,14 @@ export function collectAssistantResponseContentForStreamRenderStrategy(params: {
   startIndex: number;
 }): string {
   return params.strategy.collectAssistantResponseContent(params.items, params.startIndex);
+}
+
+export function collectAssistantTailContentForStreamRenderStrategy(params: {
+  strategy: StreamStrategy;
+  items: StreamItem[];
+  startIndex: number;
+}): string {
+  return params.strategy.collectAssistantTailContent(params.items, params.startIndex);
 }
 
 export function isNearBottomForStreamRenderStrategy(

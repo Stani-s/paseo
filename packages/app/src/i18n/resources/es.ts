@@ -351,6 +351,10 @@ export const es: TranslationResources = {
       forkFailed: "No se pudo bifurcar el chat",
       openFile: "Abrir archivo",
       copied: "Copiado",
+      readAloud: "Leer en voz alta",
+      stopReadAloud: "Dejar de leer en voz alta",
+      speakSelection: "Hablar la selección",
+      readAloudError: "No se pudo sintetizar la voz",
     },
     attachments: {
       dismissImage: "Descartar imagen",
@@ -2435,6 +2439,11 @@ export const es: TranslationResources = {
         title: "Dictado",
         enabled: "Dictado",
         enabledHint: "Habla en el cuadro de mensaje en lugar de escribir",
+      },
+      readAloud: {
+        title: "Leer en voz alta",
+        enabled: "Leer en voz alta",
+        enabledHint: "Lee en voz alta la respuesta del agente con un botón o el menú de selección",
       },
       voiceMode: {
         title: "Modo de voz",

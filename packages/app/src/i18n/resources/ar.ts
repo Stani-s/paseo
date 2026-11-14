@@ -346,6 +346,10 @@ export const ar: TranslationResources = {
       forkFailed: "فشل تفريع المحادثة",
       openFile: "افتح الملف",
       copied: "منقول",
+      readAloud: "القراءة بصوت عالٍ",
+      stopReadAloud: "إيقاف القراءة بصوت عالٍ",
+      speakSelection: "نطق التحديد",
+      readAloudError: "تعذّر توليد الصوت",
     },
     attachments: {
       dismissImage: "تجاهل الصورة",
@@ -2422,6 +2426,11 @@ export const ar: TranslationResources = {
         title: "الإملاء",
         enabled: "الإملاء",
         enabledHint: "تحدّث في مربع الرسالة بدلًا من الكتابة",
+      },
+      readAloud: {
+        title: "القراءة بصوت عالٍ",
+        enabled: "القراءة بصوت عالٍ",
+        enabledHint: "اقرأ ردّ الوكيل بصوت عالٍ عبر زر أو قائمة التحديد",
       },
       voiceMode: {
         title: "وضع الصوت",

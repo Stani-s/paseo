@@ -431,6 +431,13 @@ function buildServerCapabilities(params: {
           readiness,
         }),
       }),
+      readAloud: toServerCapabilityState({
+        state: readiness.readAloud,
+        reason: resolveCapabilityReason({
+          state: readiness.readAloud,
+          readiness,
+        }),
+      }),
     },
   };
 }
@@ -1699,6 +1706,7 @@ export class VoiceAssistantWebSocketServer {
       sttLanguage: this.speech?.resolveSttLanguage() ?? "en",
       tts: () => this.speech?.resolveTts() ?? null,
       speechModels: this.speech,
+      readAloudTts: () => this.speech?.resolveReadAloudTts() ?? null,
       terminalManager: this.terminalManager,
       providerSnapshotManager: this.providerSnapshotManager,
       hubExecutionAgents: options.hubExecutionAgents,

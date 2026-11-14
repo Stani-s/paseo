@@ -206,6 +206,7 @@ import {
   SpeechModelsSession,
   type SpeechModelsSessionOptions,
 } from "./session/speech/speech-models-session.js";
+import { SpeechSynthesisSession } from "./session/speech/speech-synthesis-session.js";
 import { WorkspaceFilesSession } from "./session/files/workspace-files-session.js";
 import { AgentConfigSession } from "./session/agent-config/agent-config-session.js";
 import { ProjectConfigSession } from "./session/project-config/project-config-session.js";
@@ -572,6 +573,8 @@ export interface SessionOptions {
   sttLanguage?: string;
   tts: Resolvable<TextToSpeechProvider | null>;
   speechModels?: SpeechModelsSessionOptions["runtime"];
+  // One-shot read-aloud synthesis, gated on the read aloud feature.
+  readAloudTts?: Resolvable<TextToSpeechProvider | null>;
   terminalManager: TerminalManager | null;
   providerSnapshotManager: ProviderSnapshotManager;
   hubExecutionAgents?: HubExecutionAgents;
@@ -863,6 +866,7 @@ export class Session {
   private readonly providerCatalogSession: ProviderCatalogSession;
   private readonly usageSession: UsageSession;
   private readonly speechModelsSession: SpeechModelsSession;
+  private readonly speechSynthesisSession: SpeechSynthesisSession;
   private readonly workspaceFilesSession: WorkspaceFilesSession;
   private readonly agentConfigSession: AgentConfigSession;
   private readonly projectConfigSession: ProjectConfigSession;
@@ -914,6 +918,7 @@ export class Session {
       sttLanguage,
       tts,
       speechModels,
+      readAloudTts,
       terminalManager,
       providerSnapshotManager,
       serviceProxy,
@@ -1113,6 +1118,11 @@ export class Session {
     this.speechModelsSession = new SpeechModelsSession({
       emit: (msg) => this.emit(msg),
       runtime: speechModels,
+    });
+    this.speechSynthesisSession = new SpeechSynthesisSession({
+      emit: (msg) => this.emit(msg),
+      logger: this.sessionLogger,
+      tts: readAloudTts,
     });
     this.agentConfigSession = new AgentConfigSession({
       host: {
@@ -2649,7 +2659,8 @@ export class Session {
     return (
       this.dispatchTerminalMessage(msg) ??
       this.dispatchScheduleMessage(msg) ??
-      this.speechModelsSession.dispatch(msg)
+      this.speechModelsSession.dispatch(msg) ??
+      this.speechSynthesisSession.dispatch(msg)
     );
   }
 

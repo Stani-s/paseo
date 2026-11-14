@@ -74,6 +74,10 @@ export function HostVoicePage({ serverId }: { serverId: string }) {
     (enabled: boolean) => saveSwitch({ voiceMode: { enabled } }),
     [saveSwitch],
   );
+  const setReadAloudEnabled = useCallback(
+    (enabled: boolean) => saveSwitch({ readAloud: { enabled } }),
+    [saveSwitch],
+  );
   const openSheet = useCallback((siteId: SpeechSiteId) => {
     setSheet((current) => ({
       siteId,
@@ -147,6 +151,21 @@ export function HostVoicePage({ serverId }: { serverId: string }) {
           {siteRow("voiceMode.tts", t("settings.voice.sites.voiceModeTts"))}
         </SettingsCard>
       </SettingsSection>
+      {/* Read aloud synthesizes with the voice mode TTS site, so it has a gate but no site
+          row of its own. Absent on hosts that predate the feature. */}
+      {features.readAloud ? (
+        <SettingsSection title={t("settings.voice.readAloud.title")} testID="voice-read-aloud">
+          <SettingsCard>
+            <FeatureSwitchRow
+              label={t("settings.voice.readAloud.enabled")}
+              hint={t("settings.voice.readAloud.enabledHint")}
+              envVar={envOverrides["features.readAloud.enabled"]}
+              value={features.readAloud.enabled}
+              onChange={setReadAloudEnabled}
+            />
+          </SettingsCard>
+        </SettingsSection>
+      ) : null}
       {sheet && sheetSite && sheetSite.provider !== "unknown" ? (
         <SpeechProviderSheet
           key={sheet.openCount}

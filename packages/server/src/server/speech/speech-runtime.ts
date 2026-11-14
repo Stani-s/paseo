@@ -47,6 +47,7 @@ export interface SpeechReadinessSnapshot {
   };
   realtimeVoice: SpeechReadinessState;
   dictation: SpeechReadinessState;
+  readAloud: SpeechReadinessState;
   voiceFeature: SpeechReadinessState;
 }
 
@@ -58,6 +59,7 @@ function resolveRequestedSpeechProviders(
     voiceTurnDetection: { provider: "local", explicit: false, enabled: true },
     voiceStt: { provider: "local", explicit: false, enabled: true },
     voiceTts: { provider: "local", explicit: false, enabled: true },
+    readAloudTts: { provider: "local", explicit: false, enabled: true },
   };
 
   const fromConfig = speechConfig?.providers;
@@ -70,6 +72,7 @@ function resolveRequestedSpeechProviders(
     voiceTurnDetection: fromConfig.voiceTurnDetection ?? defaults.voiceTurnDetection,
     voiceStt: fromConfig.voiceStt ?? defaults.voiceStt,
     voiceTts: fromConfig.voiceTts ?? defaults.voiceTts,
+    readAloudTts: fromConfig.readAloudTts ?? defaults.readAloudTts,
   };
 }
 
@@ -175,14 +178,51 @@ function buildDictationReadiness(params: {
   };
 }
 
+function buildReadAloudReadiness(params: {
+  providers: RequestedSpeechProviders;
+  ttsService: TextToSpeechProvider | null;
+}): SpeechReadinessState {
+  const enabled = params.providers.readAloudTts.enabled !== false;
+  if (!enabled) {
+    return {
+      enabled: false,
+      available: false,
+      reasonCode: "disabled",
+      message: "Read aloud is off. Turn it on in Settings > Voice.",
+      retryable: false,
+      missingModelIds: [],
+    };
+  }
+  if (!params.ttsService) {
+    return {
+      enabled: true,
+      available: false,
+      reasonCode: "tts_unavailable",
+      message: "Read aloud is unavailable: text-to-speech service is not ready.",
+      retryable: false,
+      missingModelIds: [],
+    };
+  }
+  return {
+    enabled: true,
+    available: true,
+    reasonCode: "ready",
+    message: "Read aloud is ready.",
+    retryable: false,
+    missingModelIds: [],
+  };
+}
+
 function buildVoiceFeatureReadiness(params: {
   realtimeVoice: SpeechReadinessState;
   dictation: SpeechReadinessState;
+  readAloud: SpeechReadinessState;
   missingLocalModelIds: LocalSpeechModelId[];
   backgroundDownloadInProgress: boolean;
   backgroundDownloadError: string | null;
 }): SpeechReadinessState {
-  const enabled = params.realtimeVoice.enabled || params.dictation.enabled;
+  const enabled =
+    params.realtimeVoice.enabled || params.dictation.enabled || params.readAloud.enabled;
   if (!enabled) {
     return {
       enabled: false,
@@ -241,6 +281,7 @@ function describeRequestedProviders(providers: RequestedSpeechProviders): {
   voiceTurnDetection: { provider: string; enabled: boolean; explicit: boolean };
   voiceStt: { provider: string; enabled: boolean; explicit: boolean };
   voiceTts: { provider: string; enabled: boolean; explicit: boolean };
+  readAloudTts: { provider: string; enabled: boolean; explicit: boolean };
 } {
   return {
     dictationStt: {
@@ -262,6 +303,11 @@ function describeRequestedProviders(providers: RequestedSpeechProviders): {
       provider: providers.voiceTts.provider,
       enabled: providers.voiceTts.enabled !== false,
       explicit: providers.voiceTts.explicit,
+    },
+    readAloudTts: {
+      provider: providers.readAloudTts.provider,
+      enabled: providers.readAloudTts.enabled !== false,
+      explicit: providers.readAloudTts.explicit,
     },
   };
 }
@@ -286,12 +332,16 @@ function resolveEffectiveProviderIds(params: {
   voiceTurnDetection: string;
   voiceStt: string;
   voiceTts: string;
+  readAloudTts: string;
 } {
+  const ttsLabel = resolveVoiceTtsLabel(params.ttsService, params.localVoiceTtsProvider);
   return {
     dictationStt: params.dictationSttService?.id ?? "unavailable",
     voiceTurnDetection: params.turnDetectionService?.id ?? "unavailable",
     voiceStt: params.sttService?.id ?? "unavailable",
-    voiceTts: resolveVoiceTtsLabel(params.ttsService, params.localVoiceTtsProvider),
+    voiceTts: ttsLabel,
+    // Read aloud shares the voice TTS provider selection and the same service instance.
+    readAloudTts: ttsLabel,
   };
 }
 
@@ -319,6 +369,7 @@ export interface SpeechService {
   resolveTurnDetection: () => TurnDetectionProvider | null;
   resolveDictationStt: () => SpeechToTextProvider | null;
   resolveDictationSttLanguage: () => string;
+  resolveReadAloudTts: () => TextToSpeechProvider | null;
   getReadiness: () => SpeechReadinessSnapshot;
   onReadinessChange: (listener: (snapshot: SpeechReadinessSnapshot) => void) => () => void;
   // Applies new provider/model settings without restarting the daemon.
@@ -406,9 +457,14 @@ export function createSpeechService(
       providers,
       dictationSttService,
     });
+    const readAloud = buildReadAloudReadiness({
+      providers,
+      ttsService,
+    });
     const voiceFeature = buildVoiceFeatureReadiness({
       realtimeVoice,
       dictation,
+      readAloud,
       missingLocalModelIds,
       backgroundDownloadInProgress,
       backgroundDownloadError,
@@ -426,6 +482,9 @@ export function createSpeechService(
       },
       dictation: {
         ...dictation,
+      },
+      readAloud: {
+        ...readAloud,
       },
       voiceFeature: {
         ...voiceFeature,
@@ -526,6 +585,7 @@ export function createSpeechService(
         : null,
       providers.voiceStt.enabled !== false && !sttService ? "voice.stt" : null,
       providers.voiceTts.enabled !== false && !ttsService ? "voice.tts" : null,
+      providers.readAloudTts.enabled !== false && !ttsService ? "readAloud.tts" : null,
     ].filter((feature): feature is string => feature !== null);
 
     if (unavailableFeatures.length > 0) {
@@ -744,6 +804,7 @@ export function createSpeechService(
     resolveTts: () => ttsService,
     resolveDictationStt: () => dictationSttService,
     resolveDictationSttLanguage: () => speechConfig?.sttLanguages?.dictation ?? "en",
+    resolveReadAloudTts: () => (providers.readAloudTts.enabled !== false ? ttsService : null),
     getReadiness: () => lastPublishedReadinessSnapshot ?? computeReadinessSnapshot(),
     onReadinessChange: subscribeSpeechReadiness,
     reconfigure,

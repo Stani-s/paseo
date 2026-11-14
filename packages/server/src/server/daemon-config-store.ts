@@ -48,7 +48,7 @@ interface SupportedMutableConfigPatch {
   features?: SpeechSettingsPatch;
 }
 
-const SPEECH_PERSISTED_PATHS = ["features.dictation", "features.voiceMode"];
+const SPEECH_PERSISTED_PATHS = ["features.dictation", "features.voiceMode", "features.readAloud"];
 
 interface LoggerLike {
   child(bindings: Record<string, unknown>): LoggerLike;

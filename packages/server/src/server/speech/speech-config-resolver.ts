@@ -41,12 +41,16 @@ const RequestedSpeechProvidersSchema = z.object({
   voiceTurnDetection: OptionalSpeechProviderSchema.default("local"),
   voiceStt: OptionalSpeechProviderSchema.default("local"),
   voiceTts: OptionalSpeechProviderSchema.default("local"),
+  readAloudTts: OptionalSpeechProviderSchema.default("local"),
 });
 
 // Dictation is on unless turned off. Voice mode is opt-in: it downloads its own models and
 // runs a hidden agent, so a host only pays for it once someone turns it on.
 export const DICTATION_ENABLED_BY_DEFAULT = true;
 export const VOICE_MODE_ENABLED_BY_DEFAULT = false;
+// Read aloud shares dictation's always-available posture: a one-shot synthesis with no hidden
+// agent, so it is on unless turned off.
+export const READ_ALOUD_ENABLED_BY_DEFAULT = true;
 
 function resolveOptionalBooleanFlag(value: unknown, fallback: boolean): boolean {
   return OptionalBooleanFlagSchema.parse(value) ?? fallback;
@@ -64,6 +68,20 @@ function firstSpeechDefinedValue<T>(values: Array<T | null | undefined>): T | un
     }
   }
   return undefined;
+}
+
+/**
+ * Voice-mode TTS provider selection; read aloud synthesizes through the same site,
+ * so the same env and config values apply to both features.
+ */
+function voiceTtsProviderSelection(params: {
+  env: NodeJS.ProcessEnv;
+  persisted: PersistedConfig;
+}): string | undefined {
+  return firstSpeechDefinedValue<string>([
+    params.env.PASEO_VOICE_TTS_PROVIDER,
+    params.persisted.features?.voiceMode?.tts?.provider,
+  ]);
 }
 
 function buildFeatureProviderInputs(params: {
@@ -106,11 +124,18 @@ function buildFeatureProviderInputs(params: {
       enabled: voiceModeEnabled,
     },
     voiceTts: {
-      configuredValue: firstSpeechDefinedValue<string>([
-        params.env.PASEO_VOICE_TTS_PROVIDER,
-        params.persisted.features?.voiceMode?.tts?.provider,
-      ]),
+      configuredValue: voiceTtsProviderSelection(params),
       enabled: voiceModeEnabled,
+    },
+    readAloudTts: {
+      configuredValue: voiceTtsProviderSelection(params),
+      enabled: resolveOptionalBooleanFlag(
+        firstSpeechDefinedValue<string | boolean>([
+          params.env.PASEO_READ_ALOUD_ENABLED,
+          params.persisted.features?.readAloud?.enabled,
+        ]),
+        READ_ALOUD_ENABLED_BY_DEFAULT,
+      ),
     },
   };
 }
@@ -137,6 +162,7 @@ export function resolveRequestedSpeechProviders(params: {
     voiceTurnDetection: featureProviders.voiceTurnDetection.configuredValue ?? "local",
     voiceStt: featureProviders.voiceStt.configuredValue ?? "local",
     voiceTts: featureProviders.voiceTts.configuredValue ?? "local",
+    readAloudTts: featureProviders.readAloudTts.configuredValue ?? "local",
   });
 
   return {
@@ -147,6 +173,7 @@ export function resolveRequestedSpeechProviders(params: {
     ),
     voiceStt: buildRequestedFeatureProvider(featureProviders.voiceStt, parsed.voiceStt),
     voiceTts: buildRequestedFeatureProvider(featureProviders.voiceTts, parsed.voiceTts),
+    readAloudTts: buildRequestedFeatureProvider(featureProviders.readAloudTts, parsed.readAloudTts),
   };
 }
 
