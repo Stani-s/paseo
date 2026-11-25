@@ -10,6 +10,7 @@ import React, {
   useRef,
   useState,
   type Dispatch,
+  type RefObject,
   type SetStateAction,
 } from "react";
 import { Pressable, Text, View, type LayoutChangeEvent, type ScrollView } from "react-native";
@@ -675,6 +676,56 @@ function useMiddleClickClose(onClose: () => void) {
   return ref;
 }
 
+function useWheelScrollTabsRow(
+  containerRef: RefObject<View | null>,
+  scrollRef: RefObject<ScrollView | null>,
+  enabled: boolean,
+) {
+  useEffect(() => {
+    if (!isWeb || !enabled) return;
+    const container = containerRef.current as unknown as HTMLElement | null;
+    if (!container) return;
+
+    function handleWheel(event: WheelEvent) {
+      if (event.ctrlKey || event.metaKey) return;
+      const delta = event.deltaX !== 0 ? event.deltaX : event.deltaY;
+      if (delta === 0) return;
+
+      const scrollRoot = scrollRef.current as unknown as HTMLElement | null;
+      if (!scrollRoot) return;
+
+      let scrollElement: HTMLElement | null = null;
+      const queue: HTMLElement[] = [scrollRoot];
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current) continue;
+        const { overflowX } = window.getComputedStyle(current);
+        if (
+          (overflowX === "auto" || overflowX === "scroll" || overflowX === "overlay") &&
+          current.scrollWidth > current.clientWidth
+        ) {
+          scrollElement = current;
+          break;
+        }
+        for (const child of Array.from(current.children)) {
+          if (child instanceof HTMLElement) queue.push(child);
+        }
+      }
+      if (!scrollElement) return;
+
+      const maxScrollLeft = scrollElement.scrollWidth - scrollElement.clientWidth;
+      const next = Math.min(maxScrollLeft, Math.max(0, scrollElement.scrollLeft + delta));
+      if (next === scrollElement.scrollLeft) return;
+
+      event.preventDefault();
+      scrollElement.scrollLeft = next;
+    }
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, [containerRef, enabled, scrollRef]);
+}
+
 function TabHandleContent({
   presentation,
   isHighlighted,
@@ -1110,6 +1161,7 @@ function ResolvedWorkspaceDesktopTabsRow({
   const newTabKeys = useShortcutKeys("workspace-tab-new");
   const [tabsContainerWidth, setTabsContainerWidth] = useState<number>(0);
   const tabsScrollRef = useRef<ScrollView>(null);
+  const tabsScrollContainerRef = useRef<View>(null);
   const [exitFocusModeWidth, setExitFocusModeWidth] = useState<number>(0);
   const tabScrollBoundary = useHorizontalScrollBoundary();
   const measurementCache = useContext(TabMeasurementCache);
@@ -1285,6 +1337,12 @@ function ResolvedWorkspaceDesktopTabsRow({
     }
   }, [layout.requiresHorizontalScrollFallback]);
 
+  useWheelScrollTabsRow(
+    tabsScrollContainerRef,
+    tabsScrollRef,
+    layout.requiresHorizontalScrollFallback,
+  );
+
   const handleDragEnd = useCallback(
     (nextTabs: ResolvedWorkspaceDesktopTabRowItem[]) => {
       onReorderTabs(nextTabs.map((tab) => tab.tab));
@@ -1427,7 +1485,7 @@ function ResolvedWorkspaceDesktopTabsRow({
         onPress={onExitFocusMode}
         onLayout={handleExitFocusModeLayout}
       />
-      <View style={styles.tabsScrollContainer}>
+      <View ref={tabsScrollContainerRef} style={styles.tabsScrollContainer}>
         <Animated.ScrollView
           ref={tabsScrollRef}
           horizontal
